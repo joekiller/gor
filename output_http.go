@@ -98,7 +98,6 @@ func (o *HTTPOutput) worker_master(n int) {
 			go o.worker()
 			log.Println("new worker")
 		}
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -106,13 +105,21 @@ func (o *HTTPOutput) worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
+	death_count := 0
 	Loop:
 		for {
 			select {
 				case data := <-o.buf:
 				o.sendRequest(client, data)
+				death_count = 0
 			default:
-				break Loop
+				death_count += 1
+				if death_count > 20 {
+					break Loop
+				} else {
+					time.Sleep(time.Millisecond * 100)
+				}
+
 			}
 		}
 	log.Println("killing worker")
