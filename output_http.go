@@ -112,10 +112,19 @@ func (o *HTTPOutput) worker() {
 		CheckRedirect: customCheckRedirect,
 	}
 
+	dead_count := 0
 	for {
-		data := <-o.buf
-		o.sendRequest(client, data)
+		select {
+			case data := <-o.buf:
+			o.sendRequest(client, data)
+		default:
+			if dead_count > 5 {
+				break
+			}
+			time.Sleep(rate * time.Millisecond)
+		}
 	}
+	log.Println("killing worker")
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
