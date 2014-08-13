@@ -121,6 +121,7 @@ func (o *HTTPOutput) worker() {
 			if dead_count > 5 {
 				break
 			}
+			dead_count = dead_count + 1
 			time.Sleep(rate * time.Millisecond)
 		}
 	}
