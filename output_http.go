@@ -106,14 +106,15 @@ func (o *HTTPOutput) worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
-	for {
-		select {
-			case data := <-o.buf:
-			o.sendRequest(client, data)
-		default:
-			break
+	Loop:
+		for {
+			select {
+				case data := <-o.buf:
+				o.sendRequest(client, data)
+			default:
+				break Loop
+			}
 		}
-	}
 	log.Println("killing worker")
 }
 
