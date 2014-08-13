@@ -96,6 +96,14 @@ func (o *HTTPOutput) worker_master(n int) {
 		<- o.queue_full
 		go o.worker()
 		log.Println("new worker")
+		for i := 0; i < 100; i++{
+			select {
+			case <- o.queue_full:
+				time.Sleep(rate * time.Millisecond)
+			default:
+				break
+			}
+		}
 	}
 }
 
