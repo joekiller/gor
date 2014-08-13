@@ -95,8 +95,6 @@ func (o *HTTPOutput) worker_master(n int) {
 	for {
 		<- o.queue_full
 		go o.worker()
-		}
-
 	}
 }
 
