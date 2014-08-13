@@ -93,9 +93,12 @@ func (o *HTTPOutput) worker_master(n int) {
 	}
 
 	for {
-		<- o.need_worker
-		go o.worker()
-		log.Println("new worker")
+		new_workers := <- o.need_worker
+		for i := 0; i < new_workers; i++ {
+			go o.worker()
+			log.Println("new worker")
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -123,7 +126,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	o.bufStats.Write(len(o.buf))
 	if buf_len > 20 {
 		if len(o.need_worker) == 0 {
-			o.need_worker <- 1
+			o.need_worker <- buf_len
 		}
 	}
 	return len(data), nil
