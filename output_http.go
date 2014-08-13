@@ -96,7 +96,7 @@ func (o *HTTPOutput) worker_master(n int) {
 		<- o.queue_full
 		go o.worker()
 		log.Println("new worker")
-		for i := 0; i < 100; i++{
+		for i := 0; i < len(o.queue_full); i++{
 			select {
 			case <- o.queue_full:
 				time.Sleep(rate * time.Millisecond)
@@ -112,17 +112,12 @@ func (o *HTTPOutput) worker() {
 		CheckRedirect: customCheckRedirect,
 	}
 
-	dead_count := 0
 	for {
 		select {
 			case data := <-o.buf:
 			o.sendRequest(client, data)
 		default:
-			if dead_count > 5 {
-				break
-			}
-			dead_count = dead_count + 1
-			time.Sleep(rate * time.Millisecond)
+			break
 		}
 	}
 	log.Println("killing worker")
