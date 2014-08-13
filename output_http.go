@@ -96,7 +96,6 @@ func (o *HTTPOutput) worker_master(n int) {
 		new_workers := <- o.need_worker
 		for i := 0; i < new_workers; i++ {
 			go o.worker()
-			log.Println("new worker")
 		}
 	}
 }
@@ -122,7 +121,6 @@ func (o *HTTPOutput) worker() {
 
 			}
 		}
-	log.Println("killing worker")
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
