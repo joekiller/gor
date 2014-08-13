@@ -104,8 +104,10 @@ func (o *HTTPOutput) worker() {
 		CheckRedirect: customCheckRedirect,
 	}
 
-	data := <-o.buf
-	o.sendRequest(client, data)
+	for {
+		data := <-o.buf
+		o.sendRequest(client, data)
+	}
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
