@@ -41,6 +41,7 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	buf     chan []byte
+	workers     chan []HTTPOutput
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -76,9 +77,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
-	for i := 0; i < 100; i++ {
-		go o.worker(i)
-	}
+	go o.worker_master(10)
 
 	if o.limit > 0 {
 		return NewLimiter(o, o.limit)
@@ -87,15 +86,26 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 	}
 }
 
-func (o *HTTPOutput) worker(n int) {
+func (o *HTTPOutput) worker_master(n int) {
+	for i := 0; i < n; i++ {
+		go o.worker()
+	}
+
+	for {
+		if len(o.buf) >= 100 {
+			go o.worker()
+		}
+
+	}
+}
+
+func (o *HTTPOutput) worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
 
-	for {
-		data := <-o.buf
-		o.sendRequest(client, data)
-	}
+	data := <-o.buf
+	o.sendRequest(client, data)
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
