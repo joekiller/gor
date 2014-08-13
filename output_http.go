@@ -41,7 +41,7 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	buf     chan []byte
-	workers     chan []HTTPOutput
+	queue_full chan int
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -67,6 +67,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 
 	o.buf = make(chan []byte, 100)
 	o.bufStats = NewGorStat("output_http")
+	o.queue_full = make(chan int)
 
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(es.ESPlugin)
@@ -92,8 +93,8 @@ func (o *HTTPOutput) worker_master(n int) {
 	}
 
 	for {
-		if len(o.buf) >= 100 {
-			go o.worker()
+		<- o.queue_full
+		go o.worker()
 		}
 
 	}
@@ -113,7 +114,11 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	copy(buf, data)
 
 	o.buf <- buf
+	buf_len := len(o.buf)
 	o.bufStats.Write(len(o.buf))
+	if buf_len == 100 {
+		o.queue_full <- 1
+	}
 
 	return len(data), nil
 }
