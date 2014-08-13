@@ -41,7 +41,7 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	buf     chan []byte
-	queue_full chan int
+	need_worker chan int
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -67,7 +67,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 
 	o.buf = make(chan []byte, 100)
 	o.bufStats = NewGorStat("output_http")
-	o.queue_full = make(chan int)
+	o.need_worker = make(chan int)
 
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(es.ESPlugin)
@@ -93,17 +93,9 @@ func (o *HTTPOutput) worker_master(n int) {
 	}
 
 	for {
-		<- o.queue_full
+		<- o.need_worker
 		go o.worker()
 		log.Println("new worker")
-		for i := 0; i < len(o.queue_full); i++{
-			select {
-			case <- o.queue_full:
-				time.Sleep(rate * time.Millisecond)
-			default:
-				break
-			}
-		}
 	}
 }
 
@@ -111,7 +103,6 @@ func (o *HTTPOutput) worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
-
 	for {
 		select {
 			case data := <-o.buf:
@@ -130,10 +121,11 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	o.buf <- buf
 	buf_len := len(o.buf)
 	o.bufStats.Write(len(o.buf))
-	if buf_len > 50 {
-		o.queue_full <- 1
+	if buf_len > 20 {
+		if len(o.need_worker) == 0 {
+			o.need_worker <- 1
+		}
 	}
-
 	return len(data), nil
 }
 
