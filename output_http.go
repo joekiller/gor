@@ -114,7 +114,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	o.buf <- buf
 	buf_len := len(o.buf)
 	o.bufStats.Write(len(o.buf))
-	if buf_len == 100 {
+	if buf_len > 50 {
 		o.queue_full <- 1
 	}
 
