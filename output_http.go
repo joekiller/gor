@@ -66,6 +66,8 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.headers = headers
 	o.methods = methods
 
+	log.Println("Methods:", methods)
+
 	o.urlRegexp = urlRegexp
 	o.headerFilters = headerFilters
 	o.headerHashFilters = headerHashFilters
@@ -150,8 +152,13 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		return
 	}
 
+	log.Println("Request Methods:", request.Method)
+
 	if !(o.urlRegexp.Good(request) && o.headerFilters.Good(request) && o.headerHashFilters.Good(request)) {
+		log.Println("Bad Request")
 		return
+	} else {
+		log.Println("Good Request")
 	}
 
 	// Change HOST of original request
