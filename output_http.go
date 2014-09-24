@@ -164,6 +164,8 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
 
+	log.Println("Request URL: ", URL)
+
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
 
