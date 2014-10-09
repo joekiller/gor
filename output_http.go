@@ -120,7 +120,7 @@ func (o *HTTPOutput) WorkerMaster(n int) {
 						o.activeWorkers += 1
 					}
 				case dead_worker := <-o.deathRecord:
-					o.activeWorkers -= 1
+					o.activeWorkers -= dead_worker
 			}
 		}
 	}
