@@ -118,7 +118,6 @@ func (o *HTTPOutput) WorkerMaster(n int) {
 					go o.Worker()
 					o.deathRecord <- 1
 				}
-			}
 		}
 	}
 }
