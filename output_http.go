@@ -162,8 +162,6 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 		select {
 		case worker_died := <-o.deathRecord:
 			o.activeWorkers += worker_died
-		default:
-			nil
 		}
 		if buf_len > 10 || (o.activeWorkers == 0 && buf_len > 0)    {
 			if len(o.needWorker) == 0 {
