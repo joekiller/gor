@@ -79,7 +79,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 
 	o.buf = make(chan []byte, 100)
 	o.activeWorkers = 0
-	o.deathRecord = make(chan []byte, 20480)
+	o.deathRecord = make(chan []int, 20480)
 	if Settings.outputHTTPStats {
 		o.bufStats = NewGorStat("output_http")
 	}
