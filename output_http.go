@@ -113,14 +113,11 @@ func (o *HTTPOutput) WorkerMaster(n int) {
 
 	if Settings.outputHTTPWorkers == -1 {
 		for {
-			select {
-				case new_workers := <-o.needWorker:
-					for i := 0; i < new_workers; i++ {
-						go o.Worker()
-						o.activeWorkers += 1
-					}
-				case dead_worker := <-o.deathRecord:
-					o.activeWorkers -= dead_worker
+				new_workers := <-o.needWorker
+				for i := 0; i < new_workers; i++ {
+					go o.Worker()
+					o.deathRecord <- 1
+				}
 			}
 		}
 	}
@@ -149,7 +146,7 @@ func (o *HTTPOutput) Worker() {
 
 			}
 		}
-	o.deathRecord <- 1
+	o.deathRecord <- -1
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
@@ -163,6 +160,12 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	}
 
 	if Settings.outputHTTPWorkers == -1 {
+		select {
+		case worker_died := <-o.deathRecord:
+			o.activeWorkers += worker_died
+		default:
+			nil
+		}
 		if buf_len > 10 || (o.activeWorkers == 0 && buf_len > 0)    {
 			if len(o.needWorker) == 0 {
 				o.needWorker <- buf_len
