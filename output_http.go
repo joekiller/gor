@@ -40,7 +40,7 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	buf     chan []byte
-	deathRecord chan []int
+	deathRecord chan int
 	needWorker chan int
 	activeWorkers int
 
@@ -79,7 +79,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 
 	o.buf = make(chan []byte, 100)
 	o.activeWorkers = 0
-	o.deathRecord = make(chan []int, 20480)
+	o.deathRecord = make(chan int, 20480)
 	if Settings.outputHTTPStats {
 		o.bufStats = NewGorStat("output_http")
 	}
@@ -163,7 +163,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	}
 
 	if Settings.outputHTTPWorkers == -1 {
-		if buf_len > 10 || (len(o.activeWorkers) == 0 && buf_len > 0)    {
+		if buf_len > 10 || (o.activeWorkers == 0 && buf_len > 0)    {
 			if len(o.needWorker) == 0 {
 				o.needWorker <- buf_len
 			}
