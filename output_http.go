@@ -40,7 +40,9 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	buf     chan []byte
+	deathRecord chan []int
 	needWorker chan int
+	activeWorkers int
 
 	urlRegexp             HTTPUrlRegexp
 	headerFilters         HTTPHeaderFilters
@@ -76,6 +78,8 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.outputHTTPUrlRewrite = outputHTTPUrlRewrite
 
 	o.buf = make(chan []byte, 100)
+	o.activeWorkers = 0
+	o.deathRecord = make(chan []byte, 20480)
 	if Settings.outputHTTPStats {
 		o.bufStats = NewGorStat("output_http")
 	}
@@ -104,13 +108,19 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 func (o *HTTPOutput) WorkerMaster(n int) {
 	for i := 0; i < n; i++ {
 		go o.Worker()
+		o.activeWorkers += 1
 	}
 
 	if Settings.outputHTTPWorkers == -1 {
 		for {
-			new_workers := <-o.needWorker
-			for i := 0; i < new_workers; i++ {
-				go o.Worker()
+			select {
+				case new_workers := <-o.needWorker:
+					for i := 0; i < new_workers; i++ {
+						go o.Worker()
+						o.activeWorkers += 1
+					}
+				case dead_worker := <-o.deathRecord:
+					o.activeWorkers -= 1
 			}
 		}
 	}
@@ -139,6 +149,7 @@ func (o *HTTPOutput) Worker() {
 
 			}
 		}
+	o.deathRecord <- 1
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
@@ -152,7 +163,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	}
 
 	if Settings.outputHTTPWorkers == -1 {
-		if buf_len > 10 {
+		if buf_len > 10 || (len(o.activeWorkers) == 0 && buf_len > 0)    {
 			if len(o.needWorker) == 0 {
 				o.needWorker <- buf_len
 			}
